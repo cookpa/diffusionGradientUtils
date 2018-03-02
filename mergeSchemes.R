@@ -1,10 +1,15 @@
 ##
-## Interleave schemes. Useful to merge shells or insert b=0 measurements at regular intervals
+## Merge schemes by interleaving measurements. Useful to merge different DWI shells or
+## insert b=0 measurements at regular intervals.
 ##
-## Pass the longest scheme first, and merge the smaller one. If length(bvals) > length(refBvals), the two
-## are switched
+## Pass the longest scheme first, the function will merge the smaller one into it.
+## If length(bvals) > length(refBvals), the two are switched.
 ##
-interleaveSchemes <- function(refBvals, refBvecs, bvals, bvecs) {
+## If the option offsetFromEnd is TRUE, the final measurement in the merged scheme is the
+## final measurement in bvecs / bvals. Otherwise, the first measurement in the merged scheme
+## is the first measuremeng in bvecs / bvals. 
+##
+mergeSchemes <- function(refBvals, refBvecs, bvals, bvecs, offsetFromEnd = T) {
 
   ## Usual sanity checks
   if ( nrow(bvecs) != length(bvals) ) {
@@ -35,7 +40,12 @@ interleaveSchemes <- function(refBvals, refBvecs, bvals, bvecs) {
   interval = mergedNumMeas / numMeasToInsert
   
   ## Where to insert measurements relative to the refBvecs / refBvals
-  insertionIndices = round(seq(interval,mergedNumMeas, interval))
+  if (offsetFromEnd) {
+    insertionIndices = round(seq(interval,mergedNumMeas, interval))
+  }
+  else {
+    insertionIndices = round(seq(1, mergedNumMeas - interval + 1, interval))
+  }
 
   ## Sanity checks
   if (length(insertionIndices) != numMeasToInsert) {
