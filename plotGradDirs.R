@@ -40,7 +40,7 @@ plotGradDirs <- function(bvals, bvecs, shells, projectToUpper = F, opacity = 0.5
         stop("valid whichHemi options are both, upper, lower")
     }
     
-    rgl::rgl.bg(color = "##FFFFFF")
+    rgl::rgl.bg(color = "#FFFFFF")
     rgl::par3d(windowRect = c(100, 100, 600, 600))
     
     shellIDs = bvalsToShells(bvals, shells)
@@ -55,7 +55,7 @@ plotGradDirs <- function(bvals, bvecs, shells, projectToUpper = F, opacity = 0.5
     
     rgl.pop("lights")
     
-    light3d(ambient = "##FFFFFF", specular = "##999999", diffuse = "##DDDDDD")
+    light3d(ambient = "#FFFFFF", specular = "#999999", diffuse = "#DDDDDD")
     
     
     for (r in 1:nrow(bvecs)) {
