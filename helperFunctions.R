@@ -27,12 +27,22 @@ bvalsToShells <- function(bvals, shells) {
 ## Of all shells, excluding b=0
 ## eg electrostaticEnergy(bvecs, bvalsToShells(bvals, c(0,1000)))
 ##
-## The first shell  is assumed to be zero or close to zero, and is ignored
+## The first shell is assumed to be zero or close to zero, and is ignored
 ##
-electrostaticEnergy <- function(bvecs, shellIDs) {
+## If no shell IDs are provided, all non-zero gradient directions are included
+##
+electrostaticEnergy <- function(bvecs, shellIDs = NA) {
 
     numMeas = nrow(bvecs)
 
+    if (is.na(shellIDs)) {
+      shellIDs = vector("numeric", numMeas)
+      
+      bvecMod = apply(bvecs, 1, function(x) { sqrt(sum(x^2)) })
+
+      shellIDs = 1 + (bvecMod > 0)
+    }
+    
     energy = matrix(nrow = numMeas, ncol = numMeas)
 
     # Do lower triangle, then fill in upper triangle for speed  
@@ -116,6 +126,25 @@ dot <- function(vec1, vec2) {
   return(sum)
 }
 
+## 3D Vector cross product
+cross <- function(v1,v2) {
+  
+  if (length(v1) != length(v2) || length(v1) != 3) {
+    stop("Vectors must be 3D")
+  }
+
+  result = matrix(c(v1[2] * v2[3] - v2[2] * v1[3], v2[1] * v1[3] - v1[1] * v2[3], v1[1] * v2[2] - v2[1] * v1[2]), ncol = 3)
+
+  return(result)
+  
+}
+
+normalizePoints <- function(vecs) {
+
+  uvecs = t(apply(vecs, 1, function(x) { x / sqrt(sum(x^2)) }))
+
+  return(uvecs)
+}
 
 ##
 ## Returns the number of measurements on each shell for a given bvals vector 
@@ -134,5 +163,36 @@ shellMeasurements <- function(bvals, shells) {
   }
 
   return(meas)
+  
+}
+
+
+readCaminoElecPoints <- function(numPoints, caminoDir = "/data/jet/pcook/code/camino") {
+
+  numPointsString = sprintf("%03d", numPoints)
+
+  file = file.path(caminoDir, "PointSets", paste("Elec", numPointsString, ".txt", sep = ""))
+
+  if (!file.exists(file)) {
+    stop(paste("No point set available for", numPoints, "points"))
+  }
+
+  points = read.table(file, header = FALSE, sep = "\n")
+
+  numPointsInFile = points[1,1]
+
+  if (numPointsInFile != numPoints) {
+    stop("Point set on disk contains the wrong number of points")
+  }
+
+  points = points[2:nrow(points),1]
+  
+  dirs = matrix(points, ncol = 3, byrow = T)
+
+  if (nrow(dirs) != numPoints) {
+    stop("Point set on disk contains the wrong number of points")
+  }
+  
+  return(dirs)
   
 }

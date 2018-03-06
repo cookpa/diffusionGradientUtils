@@ -2,7 +2,7 @@
 ##
 ## Writes a Siemens style gradient information file 
 ## 
-##  scaledGradDirs = writeSiemensGradientTable(bvals, bvecd, fileName)
+##  scaledGradDirs = writeSiemensGradientTable(bvals, bvecs, fileName)
 ##
 writeSiemensGradientTable <- function(bvals, bvecs, fileName) {
 
