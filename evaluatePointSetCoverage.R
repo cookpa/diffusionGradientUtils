@@ -1,58 +1,140 @@
 ##
-## Compares the energy of a point set to an optimized point set with the same N, perturbations of an optimized
-## point set, and random point sets. Any reasonable point set should have much lower energy than a random set.
+## Compares the energy of a point set to an optimized point set with the same N and perturbations of those points.
+## point set.
 ##
 ##
-evaluatePointSetCoverage <- function(points, referencePoints, plot = F, iterations = 1000) {
+evaluatePointSetCoverage <- function(points, referencePoints, plot = F) {
 
     numPoints = nrow(points)
+
+    if (nrow(referencePoints) != numPoints) {
+        stop("Point sets have a different number of points")
+    }
 
     energy = sum(electrostaticEnergy(points))
     
     refEnergy = sum(electrostaticEnergy(referencePoints))
 
-    perturbedEnergy = rep(0,iterations)
+    print(paste("energy =", energy))
 
     ## Mean and SD of perturbation, degrees
     perturbationM = 0
 
     ## Test a few sigmas
-    perturbationSigma = c(1,2,5)
-
-    zEnergyUnderPerturbation = rep(0, length(perturbationSigma))
-    pEnergyUnderPerturbation = rep(0, length(perturbationSigma))
-    perturbedEnergy = matrix(nrow = iterations, ncol = length(perturbationSigma))
+    perturbationSigma = c(2,4,8)
+  
+    ## Compare to perturbed elec set at various sigmas
+    ## Want to find the smallest perturbation that is has higher average energy than the points being evaluated
+    finalPerturbationSigma = -1
     
-    ## Compare to perturbed elec set
-    for (n in 1:length(perturbationSigma)) {
+    counter = 1
+
+    iterations = 100
+    
+    perturbedEnergy = rep(0,iterations)
+
+    meanPE = 0
+    sdPE = 0
+
+    ## Do a quick search for the perturbation that produces a similar mean energy
+    while(counter <= length(perturbationSigma) && finalPerturbationSigma < 0) {
         
         for (i in 1:iterations) {
-            perturbedEnergy[i,n] = sum(electrostaticEnergy(perturbPoints(referencePoints, thetaSD = perturbationSigma[n], thetaMean = perturbationM)))
+            perturbedEnergy[i] = sum(electrostaticEnergy(perturbPoints(referencePoints, thetaSD = perturbationSigma[counter],
+                                                                         thetaMean = perturbationM)))
         }
         
-        meanPE = mean(perturbedEnergy[,n])
-        sdPE = sd(perturbedEnergy[,n])
-        
-        # p of seeing an energy less than the point set energy by perturbation of the elec point set
-        pEnergyUnderPerturbation[n] = pnorm(energy, mean = meanPE, sd = sdPE, lower.tail = T)
-        
-        zEnergyUnderPerturbation[n] = (energy - meanPE) / sdPE
-        
+        meanPE = mean(perturbedEnergy)
+        sdPE = sd(perturbedEnergy)
+
+        print(paste("  Sigma =", perturbationSigma[counter], " |  meanPE =", meanPE, " |  sdPE =", sdPE))
+
+        if (meanPE > energy || counter == length(perturbationSigma)) {
+            finalPerturbationSigma = perturbationSigma[counter]
+        }
+
+        counter = counter + 1
     }
 
-    ## Other relevant info: min angle between pairs of points, median angle between pairs of points
-    
-    return(list(pointSetEnergy = energy, referenceEnergy = refEnergy, perturbedEnergy = perturbedEnergy, perturbationZ = zEnergyUnderPerturbation, perturbationPVal = pEnergyUnderPerturbation, perturbationSigma = perturbationSigma))
-   
+    ## Now do some more iterations for a nicer histogram
+    iterations = 800
+    perturbedEnergy = rep(0,iterations)
 
-    ## Compare to random point set
+    
+    for (i in 1:iterations) {
+        perturbedEnergy[i] = sum(electrostaticEnergy(perturbPoints(referencePoints, thetaSD = finalPerturbationSigma,
+                                                                   thetaMean = perturbationM)))
+    }
+    
+    meanPE = mean(perturbedEnergy)
+    sdPE = sd(perturbedEnergy)
 
-    ## Any reasonable point set should do much better than random
-    
+    ## winsorize for display
+    peQuantiles = quantile(perturbedEnergy, prob = seq(0,1,0.005))
 
-    ## Return some results
+    peWinsor = perturbedEnergy
+
+    clip = peQuantiles[200]
+
+    peWinsor[peWinsor > clip] = clip
+    
+        
+    # p of seeing an energy less than the point set energy by perturbation of the elec point set
+    pEnergyUnderPerturbation = pnorm(energy, mean = meanPE, sd = sdPE, lower.tail = T)
+    
+    zEnergyUnderPerturbation = (energy - meanPE) / sdPE
+        
+    ## Other relevant info: min angle between pairs of points
+    minAngle = getClosestPointAngles(points)
+    
+    minRefAngle = getClosestPointAngles(referencePoints)
+
+    if(plot) {
+        xMin = min(refEnergy, energy)
+
+        h = hist(peWinsor, n = 16, plot = F)
+        
+        xMax = max(energy, h$breaks[length(h$breaks)])
+
+        hist(peWinsor, n = 16, xlim = c(xMin, xMax), xlab = "Electrostatic energy", main = paste("Energy compared to perturbed ref points (sigma = ", finalPerturbationSigma, ")", sep = ""))
+
+        abline(v = energy, lty = 2)
+
+        abline(v = refEnergy, lty = 3)
+
+        legend("topright", legend = c("points", "ref points"), lty = c(2,3))
+        
+    }
+    
+    return(list(pointSetEnergy = energy, refEnergy = refEnergy, minAnglePoints = minAngle, minAngleRefPoints = minRefAngle,
+                perturbedEnergy = perturbedEnergy, perturbationZ = zEnergyUnderPerturbation,
+                perturbationPVal = pEnergyUnderPerturbation, perturbationSigma = finalPerturbationSigma))
     
     
+}
+
+
+## Get the minimum angle between each point and the closest neighboring point
+getClosestPointAngles <- function(points) {
+
+    numPoints = nrow(points)
+
+    absDot = matrix(rep(0,numPoints*numPoints), ncol = numPoints, nrow = numPoints)
+    
+    ## Upper triangle
+    for (i in 1:(numPoints-1)) {
+        for (j in (i+1):numPoints) {
+            absDot[i,j] = abs(dot(points[i,],points[j,]))
+        }
+    }
+
+    minAngle = rep(0, numPoints)
+    
+    for (i in 1:numPoints) {
+        minAngle[i] = acos( max(c(absDot[i,], absDot[,i])) ) * 180 / pi
+    }
+
+    return(minAngle)
 }
 
 
@@ -183,4 +265,3 @@ perturbPoints <- function(points, thetaSD = 1, thetaMean = 0) {
   return(perturbedPoints)
   
 }
-
