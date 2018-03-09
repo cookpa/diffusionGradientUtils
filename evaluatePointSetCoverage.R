@@ -103,6 +103,15 @@ evaluatePointSetCoverage <- function(points, referencePoints, plot = F) {
         abline(v = refEnergy, lty = 3)
 
         legend("topright", legend = c("points", "ref points"), lty = c(2,3))
+
+        plot.new()
+        dev.new()
+
+        plot(sort(minAngle, decreasing = T), type = "l", lty = 1, main = "Minimum angle between points", xlab = "Index", ylab = "angle (deg)")
+
+        points(sort(minRefAngle, decreasing = T), type = "l", lty = 2)
+
+        legend("bottomleft", legend = c("points", "ref points"), lty = c(1,2))
         
     }
     
