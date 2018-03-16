@@ -35,7 +35,7 @@ electrostaticEnergy <- function(bvecs, shellIDs = NA) {
 
     numMeas = nrow(bvecs)
 
-    if (is.na(shellIDs)) {
+    if (missing(shellIDs)) {
       shellIDs = vector("numeric", numMeas)
       
       bvecMod = apply(bvecs, 1, function(x) { sqrt(sum(x^2)) })

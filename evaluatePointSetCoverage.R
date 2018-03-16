@@ -21,7 +21,7 @@ evaluatePointSetCoverage <- function(points, referencePoints, plot = F) {
     perturbationM = 0
 
     ## Test a few sigmas
-    perturbationSigma = c(2,4,8)
+    perturbationSigma = c(1,2,4,8)
   
     ## Compare to perturbed elec set at various sigmas
     ## Want to find the smallest perturbation that is has higher average energy than the points being evaluated
@@ -49,7 +49,10 @@ evaluatePointSetCoverage <- function(points, referencePoints, plot = F) {
 
         print(paste("  Sigma =", perturbationSigma[counter], " |  meanPE =", meanPE, " |  sdPE =", sdPE))
 
-        if (meanPE > energy || counter == length(perturbationSigma)) {
+        zE = (energy - meanPE) / sdPE
+
+        # If p(energy > actual energy) is greater than 0.1, use this sigma
+        if (zE < 1.28 || counter == length(perturbationSigma)) {
             finalPerturbationSigma = perturbationSigma[counter]
         }
 
@@ -106,7 +109,9 @@ evaluatePointSetCoverage <- function(points, referencePoints, plot = F) {
 
         dev.new()
 
-        plot(sort(minAngle, decreasing = T), type = "l", lty = 1, main = "Minimum angle between points", xlab = "Index", ylab = "angle (deg)")
+        angleRange = c(minAngle, minRefAngle)
+        
+        plot(sort(minAngle, decreasing = T), type = "l", lty = 1, main = "Minimum angle between points", xlab = "Index", ylab = "angle (deg)", ylim = c(min(angleRange), max(angleRange)))
 
         points(sort(minRefAngle, decreasing = T), type = "l", lty = 2)
 

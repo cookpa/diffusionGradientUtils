@@ -64,7 +64,7 @@ estimateB0SNR <- function(data, bvals, rois, unweightedB = 5) {
   
   for (i in 1:numLabels) {
 
-    labelVoxels = which(rois == labelIndices[i], arr.ind = T)
+    labelVoxels = which(as.array(rois) == labelIndices[i], arr.ind = T)
     
     numLabelVoxels = nrow(labelVoxels)
 
