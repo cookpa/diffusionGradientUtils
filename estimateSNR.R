@@ -19,6 +19,8 @@ dwiSNR <- function(data, bvals, rois, sigma) {
 
     dim(roiData) = c(length(roiData) / numMeas, numMeas)
 
+    ## Here we are summing over voxels in a single DWI volume, not the same voxel over
+    ## multiple b=0, so we mean cols not rows
     meanSignal = colMeans(roiData)
 
     output[i,] = meanSignal / sigma[i]
@@ -29,6 +31,40 @@ dwiSNR <- function(data, bvals, rois, sigma) {
   
   
 }
+
+
+##
+## Get CNR as sd(signal) / sigma over all measurements
+##
+##
+dwiCNR <- function(data, bvals, rois, sigma) {
+
+  labelIndices = sort( unique( rois[rois > 0] ) )
+
+  numLabels = length(labelIndices)
+
+  numMeas = length(bvals)
+
+  output = matrix(nrow = numLabels, ncol = numMeas)
+  
+  for (i in 1:numLabels) {
+
+    roiData = data[rois == labelIndices[i]]
+
+    dim(roiData) = c(length(roiData) / numMeas, numMeas)
+
+    sdSignal = apply(sd, 2, roiData)
+
+    output[i,] = sdSignal / sigma[i]
+    
+  }
+
+  return(output)
+  
+  
+}
+
+
 
 
 
