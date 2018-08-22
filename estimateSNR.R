@@ -33,40 +33,6 @@ dwiSNR <- function(data, bvals, rois, sigma) {
 }
 
 
-##
-## Get CNR as sd(signal) / sigma over all measurements
-##
-##
-dwiCNR <- function(data, bvals, rois, sigma) {
-
-  labelIndices = sort( unique( rois[rois > 0] ) )
-
-  numLabels = length(labelIndices)
-
-  numMeas = length(bvals)
-
-  output = matrix(nrow = numLabels, ncol = numMeas)
-  
-  for (i in 1:numLabels) {
-
-    roiData = data[rois == labelIndices[i]]
-
-    dim(roiData) = c(length(roiData) / numMeas, numMeas)
-
-    sdSignal = apply(sd, 2, roiData)
-
-    output[i,] = sdSignal / sigma[i]
-    
-  }
-
-  return(output)
-  
-  
-}
-
-
-
-
 
 ## Estimate the SNR in b=0 in some ROIs, assuming the presence of multiple b0
 ##
